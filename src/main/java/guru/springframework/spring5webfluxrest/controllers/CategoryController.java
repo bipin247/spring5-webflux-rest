@@ -2,6 +2,7 @@ package guru.springframework.spring5webfluxrest.controllers;
 
 import guru.springframework.spring5webfluxrest.domain.Category;
 import guru.springframework.spring5webfluxrest.repositories.CategoryRepository;
+import org.reactivestreams.Publisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -31,23 +32,29 @@ public class CategoryController {
         return categoryRepository.findById(id);
     }
 
-    @PutMapping("{id}")
+    @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     Mono<Category> updateCategory(@PathVariable String id , @RequestBody Category category) {
         return categoryRepository.save(category);
     }
 
     @PatchMapping("/{id}")
-    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseStatus(HttpStatus.OK)
     Mono<Category> patchCategory(@PathVariable String id, @RequestBody Category category) {
-        return categoryRepository.save(category);
+        Category category1 = categoryRepository.findById(id).block();
+        if (!category1.getDescription().equals(category.getDescription())){
+            category1.setDescription(category.getDescription());
+            return categoryRepository.save(category1);
+        }
+        return Mono.just(category1);
     }
 
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    Mono<Category> newCategory(@RequestBody Category category) {
-        return categoryRepository.save(category);
+    //note publisher whoch can be a mono or flux subscriber
+    Mono<Void> newCategory(@RequestBody Publisher publisher) {
+        return categoryRepository.saveAll(publisher).then();
     }
 
     @DeleteMapping("/{id}")
